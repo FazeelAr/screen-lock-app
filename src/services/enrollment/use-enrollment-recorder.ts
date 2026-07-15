@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Audio, type Recording } from 'expo-av';
+import { Audio, InterruptionModeAndroid, type Recording } from 'expo-av';
 import { Directory, File, Paths } from 'expo-file-system';
 
 import {
@@ -154,7 +154,7 @@ export function useEnrollmentRecorder(): EnrollmentRecorderState {
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
-        interruptionModeAndroid: Audio.InterruptionModeAndroid.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
         playsInSilentModeIOS: true,
         shouldDuckAndroid: false,
       });
@@ -197,7 +197,7 @@ export function useEnrollmentRecorder(): EnrollmentRecorderState {
       await recording.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
-        interruptionModeAndroid: Audio.InterruptionModeAndroid.DuckOthers,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
       });
 
       const rawUri = recording.getURI();
