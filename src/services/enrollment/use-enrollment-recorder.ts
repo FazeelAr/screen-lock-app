@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Audio, InterruptionModeAndroid, type Recording } from 'expo-av';
+import { Audio, InterruptionModeAndroid } from 'expo-av';
 import { Directory, File, Paths } from 'expo-file-system';
 
 import {
@@ -13,7 +13,9 @@ import {
     type EnrollmentSample,
 } from '@/src/services/enrollment/enrollment-storage';
 
-const SAMPLE_DIRECTORY = new Directory(Paths.document, 'screen-block', 'samples');
+function getSampleDirectory() {
+  return new Directory(Paths.document, 'screen-block', 'samples');
+}
 
 function formatDuration(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -42,7 +44,7 @@ export type EnrollmentRecorderState = {
 
 export function useEnrollmentRecorder(): EnrollmentRecorderState {
   const [permissionResponse, requestPermission] = Audio.usePermissions();
-  const recordingRef = useRef<Recording | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -64,7 +66,7 @@ export function useEnrollmentRecorder(): EnrollmentRecorderState {
       try {
         setIsReady(false);
         setErrorMessage(null);
-        SAMPLE_DIRECTORY.create({ idempotent: true, intermediates: true });
+        await getSampleDirectory().create({ idempotent: true, intermediates: true });
 
         const savedProfile = (await loadSavedEnrollmentProfile()) ?? (await loadLatestEnrollmentProfile());
 
@@ -210,7 +212,7 @@ export function useEnrollmentRecorder(): EnrollmentRecorderState {
       const sampleIndex = samples.length + 1;
       const sampleName = `${currentProfile.profileId}-sample-${sampleIndex}-${Date.now()}.m4a`;
       const sourceFile = new File(rawUri);
-      const destinationFile = new File(SAMPLE_DIRECTORY, sampleName);
+      const destinationFile = new File(getSampleDirectory(), sampleName);
 
       if (sourceFile.exists) {
         sourceFile.move(destinationFile);
