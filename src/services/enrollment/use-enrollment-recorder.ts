@@ -1,7 +1,68 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Audio, InterruptionModeAndroid } from 'expo-av';
 import { Directory, File, Paths } from 'expo-file-system';
+
+type PermissionResult = {
+  granted: boolean;
+  canAskAgain?: boolean;
+  status?: string;
+  expires?: string;
+};
+
+type RecordingLike = {
+  stopAndUnloadAsync: () => Promise<void>;
+  getURI: () => string | null;
+};
+
+type AudioApiLike = {
+  usePermissions: () => [PermissionResult | null, (force?: boolean) => Promise<PermissionResult>];
+  setAudioModeAsync: (config: Record<string, unknown>) => Promise<void>;
+  Recording: {
+    createAsync: (
+      options: Record<string, unknown>,
+      statusCallback?: (status: { isRecording?: boolean; durationMillis?: number }) => void,
+      intervalMs?: number
+    ) => Promise<{ recording: RecordingLike }>;
+    Presets: {
+      HIGH_QUALITY: Record<string, unknown>;
+    };
+  };
+};
+
+const InterruptionModeAndroid = {
+  DoNotMix: 1,
+  DuckOthers: 2,
+};
+
+let audioApiCache: AudioApiLike | null | undefined;
+
+function getAudioApi(): AudioApiLike | null {
+  if (audioApiCache !== undefined) {
+    return audioApiCache;
+  }
+
+  try {
+    const imported = require('expo-av');
+    const AudioModule = imported?.Audio ?? imported?.default ?? imported;
+
+    audioApiCache = {
+      usePermissions: AudioModule?.usePermissions ?? (() => [null, async () => ({ granted: false })]),
+      setAudioModeAsync: AudioModule?.setAudioModeAsync ?? (async () => undefined),
+      Recording: AudioModule?.Recording ?? {
+        createAsync: async () => {
+          throw new Error('Audio recording is unavailable in this environment.');
+        },
+        Presets: {
+          HIGH_QUALITY: {},
+        },
+      },
+    };
+  } catch {
+    audioApiCache = null;
+  }
+
+  return audioApiCache;
+}
 
 import {
     listEnrollmentSamples,
@@ -43,8 +104,9 @@ export type EnrollmentRecorderState = {
 };
 
 export function useEnrollmentRecorder(): EnrollmentRecorderState {
-  const [permissionResponse, requestPermission] = Audio.usePermissions();
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioApi = getAudioApi();
+  const [permissionResponse, requestPermission] = audioApi?.usePermissions?.() ?? [null, async () => ({ granted: false })];
+  const recordingRef = useRef<RecordingLike | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -152,20 +214,24 @@ export function useEnrollmentRecorder(): EnrollmentRecorderState {
         throw new Error('Microphone permission is required to capture enrollment samples.');
       }
 
+      if (!audioApi) {
+        throw new Error('Audio recording is unavailable in this environment. Use a native build or a device that supports expo-av.');
+      }
+
       const activeProfile = await ensureProfile();
 
-      await Audio.setAudioModeAsync({
+      await audioApi.setAudioModeAsync({
         allowsRecordingIOS: true,
         interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
         playsInSilentModeIOS: true,
         shouldDuckAndroid: false,
       });
 
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      const { recording } = await audioApi.Recording.createAsync(
+        audioApi.Recording.Presets.HIGH_QUALITY,
         (status) => {
           if (status.isRecording) {
-            setDurationMillis(status.durationMillis);
+            setDurationMillis(status.durationMillis ?? 0);
           }
         },
         250
@@ -197,7 +263,7 @@ export function useEnrollmentRecorder(): EnrollmentRecorderState {
       setErrorMessage(null);
 
       await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
+      await audioApi?.setAudioModeAsync?.({
         allowsRecordingIOS: false,
         interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
       });
