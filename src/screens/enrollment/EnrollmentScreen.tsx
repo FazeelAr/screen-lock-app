@@ -25,7 +25,8 @@ const flowSteps = [
 
 export default function EnrollmentScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const resolvedScheme = (colorScheme === 'dark' ? 'dark' : 'light') as keyof typeof Colors;
+  const colors = Colors[resolvedScheme];
   const {
     isReady,
     isRecording,
@@ -276,7 +277,7 @@ export default function EnrollmentScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  backgroundOrbs: { ...StyleSheet.absoluteFillObject },
+  backgroundOrbs: { ...StyleSheet.absoluteFill },
   orbOne: { position: 'absolute', top: -80, right: -40, width: 180, height: 180, borderRadius: 180, backgroundColor: 'rgba(47, 124, 246, 0.14)' },
   orbTwo: { position: 'absolute', top: 240, left: -90, width: 220, height: 220, borderRadius: 220, backgroundColor: 'rgba(15, 188, 178, 0.10)' },
   orbThree: { position: 'absolute', bottom: 80, right: -60, width: 200, height: 200, borderRadius: 200, backgroundColor: 'rgba(255, 167, 38, 0.10)' },
