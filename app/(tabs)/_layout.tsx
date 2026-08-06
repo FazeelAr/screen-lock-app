@@ -1,29 +1,28 @@
-import { Tabs } from 'expo-router';
-
-import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-
-  const resolvedScheme = (colorScheme === 'dark' ? 'dark' : 'light') as keyof typeof Colors;
+  const resolvedScheme = colorScheme === 'dark' ? 'dark' : 'light';
 
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         tabBarActiveTintColor: Colors[resolvedScheme].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Enroll',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="mic.fill" color={color} />,
+          title: 'Dashboard',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
+     
       <Tabs.Screen
         name="explore"
         options={{
