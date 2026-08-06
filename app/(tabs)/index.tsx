@@ -1,5 +1,5 @@
-import EnrollmentScreen from '../../src/screens/enrollment/EnrollmentScreen';
+import AdminDashboardScreen from '../../src/screens/admin/AdminDashboardScreen';
 
-export default function HomeScreen() {
-  return <EnrollmentScreen />;
+export default function DashboardRoute() {
+  return <AdminDashboardScreen />;
 }
